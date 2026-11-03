@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>고려 그림책 프롬프트 생성기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;800&family=Noto+Serif+KR:wght@700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --jade:#3f8f86; --jade-dark:#2a6660; --jade-soft:#e6f3f0; --jade-line:#b9dcd5;
+  --ink:#1f2d2b; --muted:#5f716e; --card:#ffffff; --line:#dbe5e2;
+  --gold:#b8862f; --gold-soft:#fbf3e2; --gold-line:#ecd9ac;
+  --red:#c2463d; --blue:#3d6fb5; --blue-soft:#eaf1fb;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+body{margin:0;background:linear-gradient(160deg,#e9f2ef,#dfe8ee);color:var(--ink);font-family:'Noto Sans KR',system-ui,sans-serif;line-height:1.6}
+button,input,textarea{font-family:inherit;font-size:inherit}
+.wrap{max-width:900px;margin:0 auto;padding-block:24px;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px))}
+header{text-align:center;padding:12px 0 22px}
+header h1{font-family:'Noto Serif KR',serif;color:var(--jade-dark);font-size:clamp(24px,5vw,36px);margin:0;text-wrap:balance}
+header p{margin:6px 0 0;color:var(--muted)}
+header .rule{width:90px;height:4px;background:var(--jade);border-radius:2px;margin:14px auto 0}
+.panel{background:var(--card);border:2px solid var(--jade-line);border-radius:18px;padding:22px clamp(14px,3vw,28px);box-shadow:0 8px 24px rgba(30,60,55,.10);margin-bottom:20px}
+.sec{margin-top:24px}
+.sec:first-child{margin-top:0}
+.sec h2{font-size:17px;margin:0 0 10px;color:var(--jade-dark)}
+.sec h2 small{font-weight:400;color:var(--muted);font-size:13px;margin-left:6px}
+.topics{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.topic{border:2px solid var(--line);background:#f7faf9;border-radius:14px;padding:12px;cursor:pointer;text-align:center;color:inherit}
+.topic .ic{font-size:26px;display:block}
+.topic b{display:block;font-size:15px}
+.topic.on{border-color:var(--jade);background:var(--jade-soft)}
+.events{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.event{border:2px solid var(--gold-line);background:#fff;border-radius:12px;padding:10px 14px;cursor:pointer;text-align:left;color:inherit}
+.event b{display:block}
+.event span{font-size:13px;color:var(--gold)}
+.event.on{border-color:var(--gold);background:var(--gold-soft);box-shadow:0 0 0 2px var(--gold-line)}
+.chips{display:flex;flex-direction:column;gap:8px;margin-bottom:8px}
+.chips.row{flex-direction:row;flex-wrap:wrap}
+.chip{border:1.5px solid var(--gold-line);background:#fffdf8;border-radius:10px;padding:8px 12px;text-align:left;cursor:pointer;color:inherit;font-size:14.5px}
+.chip:hover{background:var(--gold-soft)}
+.chip.on{background:var(--gold-soft);border-color:var(--gold);font-weight:600}
+.chip:focus-visible,.event:focus-visible,.topic:focus-visible,.btn:focus-visible{outline:2px solid var(--jade);outline-offset:2px}
+textarea.tx,input.tx{width:100%;border:1.5px solid var(--gold-line);border-radius:10px;padding:9px 12px;background:#fff;color:var(--ink);resize:vertical}
+textarea.tx{min-height:56px}
+textarea.tx:focus,input.tx:focus{outline:2px solid var(--jade-line);border-color:var(--jade)}
+.hint{font-size:13px;color:var(--muted);margin:4px 0 8px}
+.checks label{display:flex;gap:8px;align-items:flex-start;font-size:14.5px;margin:6px 0;cursor:pointer}
+.checks input{margin-top:5px}
+.empty{color:var(--muted);text-align:center;padding:18px 0}
+.result{border-color:var(--jade)}
+.result pre{white-space:pre-wrap;word-break:keep-all;background:var(--jade-soft);border-radius:12px;padding:16px;margin:0 0 14px;font-family:inherit;font-size:15px;min-height:80px}
+.bar{display:flex;flex-wrap:wrap;gap:10px}
+.btn{border:0;border-radius:10px;padding:11px 18px;cursor:pointer;font-weight:700;color:#fff;background:var(--jade)}
+.btn.gold{background:var(--gold)}
+.btn.grey{background:#6b7a78}
+.btn.line{background:#fff;color:var(--ink);border:1px solid var(--line);font-weight:400;padding:6px 12px}
+.btn.del{background:#fff;color:var(--red);border:1px solid #f0c4c0;font-weight:400;padding:6px 12px}
+.saved{display:flex;flex-direction:column;gap:12px}
+.item{border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.item .meta{font-size:13px;color:var(--muted);margin-bottom:6px;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.item p{margin:0 0 10px;white-space:pre-wrap;font-size:14px}
+.item .bar{gap:6px}
+.tip{background:var(--blue-soft);border:1px solid #c9d9f0;border-radius:12px;padding:12px 16px;font-size:14px;margin-top:14px}
+.tip b{color:var(--blue)}
+.tip ul{margin:4px 0 0;padding-left:20px}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom, 0px));transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 18px;border-radius:999px;font-size:14px;opacity:0;transition:.25s;pointer-events:none;z-index:50;max-width:calc(100% - 32px);text-align:center}
+.toast.show{opacity:1}
+@media (prefers-reduced-motion:reduce){.toast{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+ <header>
+  <h1>고려 그림책 프롬프트 생성기</h1>
+  <p>역사 사실을 바탕으로 그림을 만들어 줄 프롬프트를 작성해 보세요</p>
+  <div class="rule"></div>
+ </header>
+
+ <div class="panel">
+  <div class="sec">
+   <h2>📜 이야기 고르기</h2>
+   <div class="topics" id="topics"></div>
+  </div>
+  <div class="sec">
+   <h2>🗂️ 장면(사건) 고르기</h2>
+   <div class="events" id="events"><p class="empty">먼저 위에서 이야기를 골라 보세요.</p></div>
+   <p class="hint">또는 직접 입력:</p>
+   <input class="tx" id="f_event" placeholder="다른 고려 시대 사건이나 장면을 직접 입력하세요" maxlength="60">
+  </div>
+  <div id="fields"></div>
+  <div class="sec">
+   <h2>✅ 꼭 지킬 약속 <small>그림이 역사와 맞고, 친구들이 보기 좋게</small></h2>
+   <div class="checks">
+    <label><input type="checkbox" id="c_hist" checked> 고려 시대(918~1392년) 우리나라의 옷차림과 건물로 그리기 (조선 시대의 갓·도포, 일본·중국 옷차림은 넣지 않기)</label>
+    <label><input type="checkbox" id="c_safe" checked> 어린이 그림책이므로 피나 잔인한 장면 없이 표현하기</label>
+    <label><input type="checkbox" id="c_text" checked> 그림 안에 글자나 말풍선은 넣지 않기 (글은 캔바에서 따로 넣어요)</label>
+   </div>
+  </div>
+ </div>
+
+ <div class="panel result">
+  <div class="sec">
+   <h2>✨ 완성된 프롬프트</h2>
+   <pre id="out"></pre>
+   <div class="bar">
+    <button class="btn" id="doCopy">📋 복사하기</button>
+    <button class="btn gold" id="doSave">💾 저장하기</button>
+    <button class="btn grey" id="doReset">↺ 초기화</button>
+   </div>
+   <div class="tip"><b>💡 이렇게 써 보세요</b>
+    <ul>
+     <li>복사한 프롬프트를 캔바의 <b>Magic Media(텍스트로 이미지 만들기)</b> 같은 그림 생성 도구에 붙여 넣어요.</li>
+     <li>그림이 마음에 들지 않으면 인물이나 구도를 바꾸어 다시 만들어 보세요.</li>
+     <li>그림을 만든 뒤에는 옷차림이나 건물이 고려 시대와 맞는지 꼭 확인해요.</li>
+    </ul>
+   </div>
+  </div>
+ </div>
+
+ <div class="panel">
+  <div class="sec">
+   <h2>📚 저장된 프롬프트</h2>
+   <div class="saved" id="saved"></div>
+  </div>
+ </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* 장면: [제목, 연도, 시대 배경, [인물×3], [장소×3], [행동×3], [감정×3]] */
+const TOPICS = {
+ khitan:{icon:'🐫', name:'고려와 거란의 전쟁', events:[
+  ['거란의 낙타 선물','942년','942년 고려 태조 왕건 때, 발해를 멸망시킨 거란이 사신과 낙타를 보내온 시기',
+   ['근엄한 표정의 태조 왕건과 고려 신하들','낙타를 끌고 온 거란 사신들','다리 위에서 지켜보는 개경 백성들'],
+   ['개경 궁궐의 넓은 마당','개경의 돌다리 만부교와 그 아래 냇가','낙타들이 늘어선 궁궐 앞 길'],
+   ['왕건이 손을 들어 거란의 선물을 거절하는 모습','낙타들을 만부교 다리 아래에 묶어 두는 장면','거란 사신들이 놀란 얼굴로 궁궐을 떠나는 모습'],
+   ['단호하고 긴장감 있는 분위기','발해를 잊지 않겠다는 굳은 의지','앞으로 다가올 갈등을 예고하는 무거운 분위기']],
+  ['거란의 1차 침입','993년','993년, 거란 장수 소손녕이 대군을 이끌고 고려 북쪽을 침입한 시기',
+   ['말을 탄 거란 기마병 무리','큰소리치는 거란 장수 소손녕','걱정스러운 표정의 고려 백성과 군사'],
+   ['넓은 압록강과 강을 건너는 군대','고려 북쪽의 산과 들판','봉화가 피어오르는 국경의 산성'],
+   ['거란군이 깃발을 휘날리며 강을 건너오는 모습','봉화를 올려 침입 소식을 알리는 고려 병사','피란 짐을 싸는 마을 사람들'],
+   ['불안하고 긴박한 분위기','거대한 적 앞의 두려움','폭풍 전야 같은 긴장감']],
+  ['서희의 외교 담판','993년','993년, 거란의 1차 침입 때 서희가 거란 진영에서 소손녕과 담판을 벌인 순간',
+   ['고려 관리의 옷을 입고 당당하게 앉은 서희','거란 장수 소손녕','양쪽 뒤에 서 있는 고려와 거란의 신하들'],
+   ['거란 진영의 큰 천막 안','두 사람이 마주 앉은 낮은 탁자','천막 밖으로 보이는 거란군 진지'],
+   ['서희가 손으로 지도를 가리키며 설명하는 모습','소손녕이 서희의 말에 고개를 끄덕이는 모습','서로 예를 갖추어 인사하는 장면'],
+   ['칼 대신 말로 겨루는 팽팽한 긴장감','서희의 자신감과 지혜','위기를 기회로 바꾸는 희망찬 분위기']],
+  ['거란의 2차 침입','1010년','1010년, 거란이 다시 쳐들어와 개경까지 위험해진 시기',
+   ['갑옷을 입고 군사를 이끄는 양규 장군','끝까지 성을 지키는 고려 군사들','피란길에 오른 개경 백성들'],
+   ['연기가 오르는 개경 성문','고려 북쪽 흥화진의 성벽','눈 덮인 산길'],
+   ['양규 장군이 물러가는 거란군의 뒤를 기습하는 모습','끌려가던 백성들을 구해 내는 장면','성벽 위에서 활을 쏘는 고려 군사'],
+   ['어려움 속에서도 포기하지 않는 끈기','긴박하고 치열한 분위기','백성을 지키려는 용기']],
+  ['강감찬의 귀주 대첩','1019년','1019년, 강감찬이 이끄는 고려군이 귀주에서 거란군을 크게 물리친 날',
+   ['흰 수염의 노장 강감찬 장군','함성을 지르며 나아가는 고려 군사들','달아나는 거란 기마병'],
+   ['귀주의 넓은 들판','바람에 휘날리는 고려군 깃발','먼지와 화살이 날리는 싸움터'],
+   ['강감찬이 칼을 높이 들고 공격 명령을 내리는 모습','바람을 등지고 화살을 쏘는 고려군','고려군이 거란군을 몰아내는 장면'],
+   ['승리의 기쁨과 힘찬 기세','바람의 방향이 바뀌는 극적인 순간','나라를 지켜 낸 자랑스러움']],
+  ['천리장성 쌓기','1033~1044년','1033년부터 고려가 북쪽 국경에 천리장성을 쌓은 시기',
+   ['돌을 나르는 고려 백성과 군사들','공사를 살피는 고려 관리','일하는 사람들에게 물을 건네는 아이'],
+   ['산등성이를 따라 길게 이어진 돌성','압록강 어귀에서 동해까지 펼쳐진 풍경','평화로워진 성 아래 마을'],
+   ['여러 사람이 힘을 모아 큰 돌을 쌓는 모습','완성된 성벽 위에서 멀리 내다보는 병사','성 아래에서 농사짓는 마을 사람들'],
+   ['힘을 모은 뿌듯함','평화롭고 든든한 분위기','다시는 침입당하지 않겠다는 다짐']]
+ ]},
+ jurchen:{icon:'🏯', name:'고려와 여진의 전쟁 (윤관)', events:[
+  ['여진이 강해지다','11세기 후반','11세기 후반~1104년, 여진의 완안부가 부족을 하나로 모으며 고려 국경 가까이 온 시기',
+   ['털모자와 가죽옷을 입은 여진 기마병','여러 부족을 모으는 여진 완안부의 지도자','국경을 지키며 걱정하는 고려 병사'],
+   ['고려 동북쪽 국경의 정주 관문','눈 덮인 동북쪽의 넓은 들판과 숲','멀리 여진 마을이 보이는 언덕'],
+   ['여진 부족들이 한자리에 모여 깃발을 드는 모습','여진 군대가 국경 가까이 말을 달려오는 장면','고려 병사가 관문 위에서 멀리 살피는 모습'],
+   ['점점 커지는 긴장감','변화가 다가오는 불안한 분위기','차가운 북쪽 바람 같은 분위기']],
+  ['말을 탄 여진군에게 지다','1104년','1104년(숙종 9), 고려군이 말을 탄 여진군에게 크게 진 시기',
+   ['말을 탄 여진 기병','걸어서 싸우는 고려 보병','고민에 빠진 장수 윤관'],
+   ['동북쪽 국경의 거친 들판','싸움에 지고 돌아오는 길','윤관이 앉아 있는 군막 안'],
+   ['빠른 여진 기병에게 고려 보병이 밀리는 장면','다친 병사를 부축해 돌아오는 모습','윤관이 지도를 보며 진 까닭을 생각하는 모습'],
+   ['안타까움과 아쉬움','다시 일어서려는 굳은 결심','조용하고 무거운 분위기']],
+  ['별무반을 만들다','1104년','1104년 12월, 윤관의 건의로 특별 부대 별무반을 만든 시기',
+   ['숙종에게 건의하는 윤관','말을 탄 신기군과 걸어서 싸우는 신보군','승려들로 이루어진 항마군'],
+   ['고려 궁궐 안의 회의 장소','넓은 군사 훈련장','말들이 늘어선 마구간'],
+   ['윤관이 숙종 앞에서 새 군대를 만들자고 말하는 모습','신기군이 말을 타고 활쏘기를 훈련하는 장면','세 부대가 줄지어 서 있는 모습'],
+   ['새로운 희망과 의지','힘찬 훈련의 열기','이번에는 꼭 이기겠다는 다짐']],
+  ['17만 대군의 출정','1107년','1107년(예종 2), 윤관과 오연총이 17만 대군을 이끌고 여진 정벌에 나선 때',
+   ['부월(왕이 장군에게 주는 의식용 도끼)을 내려 주는 예종','갑옷을 입은 대장 윤관과 부대장 오연총','끝없이 늘어선 고려 군사들'],
+   ['서경(평양)의 궁궐 앞','북쪽으로 이어진 큰길','깃발이 가득한 출정 행렬'],
+   ['윤관이 무릎을 꿇고 부월을 받는 장면','17만 대군이 깃발을 들고 행진하는 모습','고려군이 빠르게 북쪽으로 나아가는 장면'],
+   ['웅장하고 힘찬 분위기','긴장과 기대가 섞인 출발','임금의 뜻을 받든 책임감']],
+  ['동북 9성을 쌓다','1107~1108년','1107~1108년, 윤관이 고려 동북쪽에 9성을 쌓고 국경에 비석을 세운 시기',
+   ['비석 앞에 선 장수 윤관','성을 쌓는 고려 군사들','남쪽에서 옮겨 와 농사짓는 백성들'],
+   ['새로 쌓은 산성과 성문','국경을 표시한 커다란 비석','성 안의 새 마을과 밭'],
+   ['윤관이 국경에 비석을 세우는 모습','병사들이 돌을 쌓아 성벽을 올리는 장면','새 마을에서 밭을 가는 백성들'],
+   ['넓은 땅을 얻은 뿌듯함','새로운 시작의 설렘','앞날을 알 수 없는 묘한 긴장감']],
+  ['여진의 반격','1108~1109년','1108~1109년, 살 곳을 잃은 여진이 9성을 되찾으려고 공격한 시기',
+   ['살던 땅을 잃고 슬퍼하는 여진 가족','성을 공격하는 여진 군사','지친 얼굴로 성을 지키는 고려 병사'],
+   ['서로 멀리 떨어진 9성 가운데 한 성','험한 산길과 골짜기','겨울 눈보라 속 성벽'],
+   ['여진군이 성을 둘러싸고 공격하는 장면','식량이 모자라 지쳐 있는 고려 병사들','여진 사람들이 옛 마을을 바라보는 모습'],
+   ['양쪽 모두의 고통과 슬픔','끝나지 않는 싸움의 피로','서로의 입장을 생각하게 하는 분위기']],
+  ['9성을 돌려주다','1109년','1109년(예종 4), 고려 조정이 9성을 여진에게 돌려주기로 결정한 때',
+   ['깊이 고민하는 예종','의견을 말하는 신하 김인존','서로 다른 의견을 내는 신하들'],
+   ['고려 궁궐의 회의 장소','9성 지도가 펼쳐진 탁자','성을 떠나 남쪽으로 돌아가는 행렬'],
+   ['신하들이 "지키자"와 "돌려주자"로 나뉘어 의논하는 장면','예종이 결정을 내리는 순간','고려 백성과 군사들이 9성을 떠나는 모습'],
+   ['깊은 고민과 아쉬움','평화를 선택하는 차분한 분위기','엇갈리는 마음']],
+  ['그 뒤의 이야기','1111~1115년','1111년 윤관이 세상을 떠나고, 1115년 여진이 금나라를 세운 시기',
+   ['관직에서 물러나 홀로 앉은 윤관','금나라를 세운 여진의 아골타','북쪽을 바라보는 고려 사람들'],
+   ['윤관의 조용한 집 마당','새로 세워진 금나라의 궁궐','고려와 금이 마주한 국경'],
+   ['윤관이 북쪽 하늘을 바라보며 지난 일을 돌아보는 모습','여진이 금나라를 세우는 장면','후손들이 윤관의 이야기를 듣는 모습'],
+   ['쓸쓸하고 아쉬운 분위기','역사의 흐름이 바뀌는 순간','잘한 점과 아쉬운 점을 함께 생각하게 하는 분위기']]
+ ]},
+ mongol:{icon:'🐎', name:'고려의 대몽 항쟁', events:[
+  ['몽골의 침입','1231년','1231년, 몽골군이 처음으로 고려를 침입한 시기',
+   ['털모자와 가죽옷을 입고 활을 든 몽골 기마병','몽골군 장수 살리타','두려워하는 고려 마을 사람들'],
+   ['고려 북쪽의 넓은 들판','먼지를 일으키며 달리는 말 떼','불안에 휩싸인 고려 마을'],
+   ['몽골 기마병이 빠르게 말을 달려오는 장면','고려 사람들이 성 안으로 피하는 모습','봉화로 침입을 알리는 모습'],
+   ['거센 폭풍 같은 위협','두렵고 긴박한 분위기','앞이 보이지 않는 불안']],
+  ['귀주성을 지켜라','1231년','1231년, 박서 장군과 군사, 백성이 귀주성에서 몽골군을 막아 낸 전투',
+   ['성벽 위에서 지휘하는 박서 장군','함께 싸우는 고려 군사와 백성','성을 둘러싼 몽골군'],
+   ['높은 귀주성 성벽','성 안에서 돌과 화살을 나르는 사람들','성 밖에 늘어선 몽골군 진지'],
+   ['박서 장군이 군사들을 격려하는 모습','백성들이 돌을 던지고 화살을 쏘는 장면','몽골군의 공격을 막아 내는 순간'],
+   ['모두가 하나 된 용기','포기하지 않는 끈질김','치열하지만 희망찬 분위기']],
+  ['강화도로 수도를 옮기다','1232년','1232년, 고려 조정이 몽골에 맞서려고 수도를 강화도로 옮긴 때',
+   ['배에 오르는 고려 왕과 신하들','짐을 이고 지고 배에 타는 백성들','노를 젓는 뱃사람들'],
+   ['개경에서 강화도로 이어지는 바다','강화도의 해안과 새 궁궐','물살이 센 강화도 앞바다'],
+   ['많은 배가 줄지어 바다를 건너는 장면','강화도에 새 궁궐을 짓는 모습','바닷가에서 몽골군을 경계하는 병사'],
+   ['새로운 곳에서 다시 싸우려는 결심','떠나는 아쉬움과 희망','넓고 고요한 바다의 분위기']],
+  ['처인성 전투','1232년','1232년, 승려 김윤후와 처인부곡 사람들이 처인성에서 몽골군을 물리친 전투',
+   ['승려 옷을 입고 활을 든 김윤후','용감하게 싸우는 처인부곡 사람들','말에서 떨어지는 몽골 장수 살리타'],
+   ['작은 흙성인 처인성','성 앞의 넓은 들판','나무 울타리가 둘러진 성벽'],
+   ['김윤후가 활을 겨누는 모습','몽골 장수가 쓰러지자 몽골군이 물러나는 장면','부곡 사람들이 함께 기뻐하는 모습'],
+   ['작은 힘이 모여 이룬 놀라운 승리','차별받던 사람들의 당당함','긴장 끝에 찾아온 기쁨']],
+  ['충주성의 노비 문서','1253년','1253년, 김윤후가 충주성에서 70일 넘게 몽골군을 막아 낸 전투',
+   ['노비 문서를 불태우는 김윤후','기뻐하는 노비들과 백성들','함께 성을 지키는 여러 신분의 사람들'],
+   ['충주성의 성벽과 성문','모닥불이 타오르는 성 안 마당','성을 둘러싼 몽골군 진지'],
+   ['김윤후가 노비 문서를 불 속에 던지는 장면','신분에 상관없이 모두가 함께 싸우는 모습','몽골군이 물러나는 것을 지켜보는 사람들'],
+   ['희망과 감동이 넘치는 분위기','모두가 하나 된 순간','지쳤지만 꺾이지 않는 의지']],
+  ['팔만대장경을 새기다','1236~1251년','1236~1251년, 몽골과 전쟁하던 중에 팔만대장경판을 새긴 시기',
+   ['정성껏 글자를 새기는 승려와 장인들','나무판을 나르는 사람들','두 손 모아 기도하는 사람들'],
+   ['나무판이 가득 쌓인 작업장','강화도의 절','먹과 조각칼이 놓인 작업대'],
+   ['조각칼로 한 글자씩 새기는 모습','완성된 경판을 차곡차곡 쌓는 장면','글자를 새기기 전에 절하는 모습'],
+   ['조용하고 경건한 분위기','나라를 지키려는 간절한 마음','오랜 시간 쌓인 정성']],
+  ['전쟁이 끝나다','1259~1270년','약 30년 동안 이어진 몽골과의 전쟁을 끝내고 수도를 다시 개경으로 옮긴 시기',
+   ['지친 얼굴의 고려 백성들','개경으로 돌아가는 왕과 신하들','다시 농사를 시작하는 농부'],
+   ['전쟁으로 황폐해진 들판','다시 돌아온 개경','강화도를 떠나는 배'],
+   ['사람들이 짐을 싣고 개경으로 돌아가는 행렬','부서진 집을 다시 고치는 모습','가족을 기다리는 사람들'],
+   ['슬픔과 안도감이 함께 있는 분위기','다시 시작하려는 희망','조용하고 차분한 분위기']]
+ ]},
+ culture:{icon:'🏺', name:'고려의 문화재', events:[
+  ['청자를 빚는 도공','12세기','12세기 고려, 강진에서 청자를 만들던 시기',
+   ['흙을 빚는 고려 도공','가마의 불을 지키는 도공의 제자','완성된 청자를 살펴보는 도공'],
+   ['언덕을 따라 길게 이어진 강진의 가마','물레가 있는 도자기 작업장','청자가 줄지어 놓인 선반'],
+   ['물레를 돌리며 그릇 모양을 빚는 모습','가마에 장작을 넣어 불을 지피는 장면','구워 낸 청자를 꺼내며 기뻐하는 모습'],
+   ['정성 가득한 차분한 분위기','작품을 완성한 뿌듯함','따뜻한 불빛이 감도는 분위기']],
+  ['상감 기법으로 무늬 넣기','12세기','12세기 고려, 상감 기법으로 고려만의 청자를 만든 시기',
+   ['작은 칼로 무늬를 새기는 도공','흰 흙과 검은빛 흙을 준비하는 제자','구름과 학 무늬가 있는 상감 청자 매병'],
+   ['도자기 작업장의 작업대','햇빛이 드는 창가','상감 청자가 놓인 선반'],
+   ['그릇 겉면에 학과 구름 무늬를 새겨 파내는 장면','파낸 자리를 흰 흙과 검은빛 흙으로 메우는 모습','구름 사이로 학이 나는 무늬의 청자를 들어 보이는 모습'],
+   ['섬세하고 조용한 집중','고려만의 아름다움에 대한 자부심','맑고 은은한 분위기']],
+  ['청자를 실은 보물선','고려 시대','고려 시대, 청자를 실은 배가 탐진(강진)에서 개경으로 가던 바닷길',
+   ['청자 꾸러미를 배에 싣는 뱃사람들','배를 이끄는 선장','오늘날 바닷속을 조사하는 잠수부'],
+   ['청자를 가득 실은 고려의 나무배','파도가 치는 태안 앞바다','바닷속 모래에 묻힌 청자들'],
+   ['뱃사람들이 짚으로 싼 청자를 배에 싣는 장면','배가 파도를 헤치고 나아가는 모습','잠수부가 바닷속에서 청자를 발견하는 순간'],
+   ['모험이 가득한 분위기','신비롭고 고요한 바닷속','오래된 보물을 찾은 놀라움']],
+  ['팔만대장경판 새기기','1236~1251년','1236~1251년, 몽골의 침입 속에서 나라를 지키려고 팔만대장경판을 새긴 시기',
+   ['글자를 새기는 장인','틀린 글자가 없는지 살피는 승려','경판을 정리하는 사람들'],
+   ['나무 향이 가득한 작업장','경판이 끝없이 쌓인 창고','오늘날 경판이 보관된 합천 해인사 장경판전'],
+   ['한 글자를 새길 때마다 정성을 다하는 모습','틀린 글자가 없는지 꼼꼼히 확인하는 장면','완성된 경판을 줄지어 보관하는 모습'],
+   ['경건하고 고요한 분위기','오랜 정성과 끈기','세계에 자랑할 만한 자부심']],
+  ['금속 활자 만들기','고려 시대','고려 시대, 세계 최초로 금속 활자를 만들던 시기',
+   ['밀랍에 글자를 새기는 장인','쇳물을 붓는 장인','활자를 떼어 다듬는 제자'],
+   ['불가마가 있는 작업장','황토 반죽과 밀랍이 놓인 작업대','작은 활자들이 담긴 나무 상자'],
+   ['밀랍에 글자를 새기는 모습','황토로 감싼 틀에 뜨거운 쇳물을 붓는 장면','식은 틀에서 반짝이는 활자를 떼어 내는 모습'],
+   ['뜨겁고 활기찬 작업장 분위기','새로운 기술을 만든 놀라움','꼼꼼하고 진지한 분위기']],
+  ['『직지』를 인쇄하다','1377년','1377년, 청주 흥덕사에서 『직지』를 금속 활자로 인쇄한 때',
+   ['활자를 배열하는 흥덕사 승려들','종이를 눌러 인쇄하는 승려','완성된 책을 펼쳐 보는 승려'],
+   ['청주 흥덕사의 작업 공간','먹과 종이가 놓인 인쇄대','오늘날 『직지』가 있는 프랑스 국립 도서관'],
+   ['활자를 판에 하나씩 끼워 넣는 모습','먹을 바르고 종이에 찍어 내는 장면','인쇄한 종이를 묶어 책으로 만드는 모습'],
+   ['조용하고 정성스러운 분위기','세계 최초를 이룬 자랑스러움','오래된 책의 소중함']],
+  ['문익점의 목화씨','1360년대','1360년대 고려 말, 문익점이 원에서 목화씨를 가져와 기른 시기',
+   ['목화씨를 손에 든 문익점','목화를 함께 기르는 장인 정천익','무명옷을 입고 기뻐하는 백성들'],
+   ['하얀 목화솜이 핀 밭','물레로 실을 뽑는 집 마당','따뜻한 무명옷을 입은 겨울 마을'],
+   ['문익점이 목화씨를 정성껏 심는 모습','목화솜에서 실을 뽑고 옷감을 짜는 장면','따뜻한 무명옷을 입고 겨울을 나는 가족'],
+   ['따뜻하고 포근한 분위기','오랜 노력 끝에 얻은 기쁨','백성을 생각하는 마음']]
+ ]}
+};
+const ORDER = ['khitan','jurchen','mongol','culture'];
+const COMMON = {
+ style:['따뜻한 수채화 그림책 스타일','색연필로 그린 그림책 스타일','한국 전통 채색화 느낌','부드러운 디지털 일러스트','종이를 오려 붙인 콜라주 스타일'],
+ view:['멀리서 장면 전체를 보여 주는 구도','인물을 가까이서 보여 주는 구도','위에서 내려다보는 구도','아래에서 올려다보는 웅장한 구도'],
+ color:['밝고 따뜻한 색감','푸른 청자빛이 감도는 차분한 색감','노을빛이 비치는 극적인 색감','새벽 안개처럼 고요한 색감'],
+ ratio:['가로 그림(4:3)','정사각형 그림(1:1)','세로 그림(3:4)']
+};
+/* [키, 제목, 장면 데이터 위치(없으면 공통 보기), 한 줄로 보여 줄지] */
+const FIELDS = [
+ ['bg','🏛️ 시대 배경',2],
+ ['who','👤 인물 묘사',3],
+ ['where','🏞️ 장소·배경 묘사',4],
+ ['act','⚔️ 행동·상황',5],
+ ['feel','🎭 감정·분위기',6],
+ ['style','🎨 그림 스타일',null,true],
+ ['view','📷 구도',null,true],
+ ['color','🌈 색감',null,true],
+ ['ratio','📐 그림 모양',null,true]
+];
+
+let topic = null, evIdx = null;
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),2200); }
+
+function renderTopics(){
+  $('topics').innerHTML = ORDER.map(k=>`<button class="topic ${topic===k?'on':''}" data-k="${k}"><span class="ic">${TOPICS[k].icon}</span><b>${TOPICS[k].name}</b></button>`).join('');
+  document.querySelectorAll('.topic').forEach(b=>b.onclick=()=>{ topic=b.dataset.k; evIdx=null; renderTopics(); renderEvents(); renderFields(); build(); });
+}
+function renderEvents(){
+  const evs = TOPICS[topic].events;
+  $('events').innerHTML = evs.map((e,i)=>`<button class="event ${evIdx===i?'on':''}" data-i="${i}"><b>${e[0]}</b><span>${e[1]}</span></button>`).join('');
+  document.querySelectorAll('.event').forEach(b=>b.onclick=()=>{
+    evIdx=+b.dataset.i; $('f_event').value = evs[evIdx][0];
+    renderEvents(); renderFields(); build();
+  });
+}
+function optionsFor(f){
+  if(f[2]===null) return COMMON[f[0]];
+  if(evIdx===null) return [];
+  const v = TOPICS[topic].events[evIdx][f[2]];
+  return Array.isArray(v) ? v : [v];
+}
+function renderFields(){
+  const keep = {};
+  FIELDS.forEach(f=>{ const el=$('f_'+f[0]); if(el) keep[f[0]]=el.value; });
+  $('fields').innerHTML = FIELDS.map(f=>{
+    const opts = optionsFor(f);
+    return `<div class="sec"><h2>${f[1]}</h2>
+      ${opts.length?`<div class="chips ${f[3]?'row':''}">${opts.map(o=>`<button class="chip" data-f="${f[0]}">${esc(o)}</button>`).join('')}</div>`:''}
+      <textarea class="tx" id="f_${f[0]}" rows="2" placeholder="${opts.length?'위에서 고르거나 직접 입력하세요':'장면을 고르면 보기가 나와요. 직접 입력해도 돼요'}"></textarea></div>`;
+  }).join('');
+  /* 장면을 바꾸면 장면별 칸은 비우고, 공통 칸(스타일·구도 등)은 유지 */
+  FIELDS.forEach(f=>{ if(f[2]===null && keep[f[0]]) $('f_'+f[0]).value = keep[f[0]]; });
+  document.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{ $('f_'+c.dataset.f).value = c.textContent; syncChips(); build(); });
+  document.querySelectorAll('#fields textarea').forEach(t=>t.oninput=()=>{ syncChips(); build(); });
+  syncChips();
+}
+function syncChips(){
+  document.querySelectorAll('.chip').forEach(c=>c.classList.toggle('on', $('f_'+c.dataset.f).value.trim()===c.textContent));
+}
+
+function val(k){ const el=$('f_'+k); return el ? el.value.trim() : ''; }
+function build(){
+  const v = {}; FIELDS.forEach(f=>v[f[0]]=val(f[0]));
+  const ev = $('f_event').value.trim();
+  const parts = [];
+  parts.push(`${v.style||'따뜻한 그림책 스타일'}로 그린 초등학생용 고려 역사 그림책 삽화.`);
+  if(ev) parts.push(`장면: ${ev}.`);
+  if(v.bg) parts.push(`시대 배경: ${v.bg}.`);
+  if(v.who) parts.push(`인물: ${v.who}.`);
+  if(v.where) parts.push(`장소: ${v.where}.`);
+  if(v.act) parts.push(`행동: ${v.act}.`);
+  if(v.feel) parts.push(`분위기: ${v.feel}.`);
+  const look = [v.view, v.color, v.ratio].filter(Boolean);
+  if(look.length) parts.push(`화면: ${look.join(', ')}.`);
+  if($('c_hist').checked) parts.push('고려 시대(918~1392년) 한국의 옷차림과 건축을 정확하게 표현하고, 조선 시대의 갓과 도포, 일본·중국의 옷차림은 넣지 않는다.');
+  if($('c_safe').checked) parts.push('어린이가 보는 그림책이므로 피나 잔인한 장면 없이 표현한다.');
+  if($('c_text').checked) parts.push('그림 안에 글자나 말풍선은 넣지 않는다.');
+  const ready = ev || FIELDS.slice(0,5).some(f=>v[f[0]]);
+  $('out').textContent = ready ? parts.join('\n') : '이야기와 장면을 고르면 여기에 프롬프트가 만들어져요.';
+  return ready ? parts.join('\n') : '';
+}
+$('f_event').oninput = build;
+['c_hist','c_safe','c_text'].forEach(id=>$(id).onchange = build);
+
+/* 복사 · 저장 */
+async function copyText(t){
+  try{ await navigator.clipboard.writeText(t); toast('복사했어요! 그림 생성 도구에 붙여 넣으세요.'); }
+  catch(e){
+    const ta=document.createElement('textarea'); ta.value=t; document.body.appendChild(ta); ta.select();
+    let ok=false; try{ ok=document.execCommand('copy'); }catch(_){}
+    ta.remove(); toast(ok?'복사했어요!':'복사가 안 돼요. 프롬프트를 직접 드래그해서 복사하세요.');
+  }
+}
+$('doCopy').onclick = () => { const t=build(); if(!t){ toast('먼저 장면을 골라 보세요.'); return; } copyText(t); };
+
+const KEY = 'goryeoPromptMaker_v1';
+let saved = [];
+try{ saved = JSON.parse(localStorage.getItem(KEY)) || []; }catch(e){ saved = []; }
+function persist(){ try{ localStorage.setItem(KEY, JSON.stringify(saved)); }catch(e){ toast('이 브라우저에는 저장할 수 없어요. 복사해서 따로 보관하세요.'); } }
+function renderSaved(){
+  if(!saved.length){ $('saved').innerHTML = '<p class="empty">저장된 프롬프트가 없어요.</p>'; return; }
+  $('saved').innerHTML = saved.map((s,i)=>`<div class="item">
+    <div class="meta"><b>${esc(s.title)}</b><span>${esc(s.date)}</span></div>
+    <p>${esc(s.text)}</p>
+    <div class="bar"><button class="btn line" data-c="${i}">📋 복사</button><button class="btn del" data-d="${i}">삭제</button></div></div>`).join('');
+  document.querySelectorAll('[data-c]').forEach(b=>b.onclick=()=>copyText(saved[+b.dataset.c].text));
+  document.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>{ saved.splice(+b.dataset.d,1); persist(); renderSaved(); toast('삭제했어요.'); });
+}
+$('doSave').onclick = () => {
+  const t=build(); if(!t){ toast('먼저 장면을 골라 보세요.'); return; }
+  const d=new Date();
+  saved.unshift({title:$('f_event').value.trim()||'고려 그림책 장면', text:t, date:`${d.getMonth()+1}월 ${d.getDate()}일 ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`});
+  persist(); renderSaved(); toast('저장했어요! 아래 [저장된 프롬프트]에서 볼 수 있어요.');
+};
+$('doReset').onclick = () => {
+  topic=null; evIdx=null; $('f_event').value='';
+  ['c_hist','c_safe','c_text'].forEach(id=>$(id).checked=true);
+  renderTopics(); $('events').innerHTML='<p class="empty">먼저 위에서 이야기를 골라 보세요.</p>';
+  renderFields(); document.querySelectorAll('#fields textarea').forEach(t=>t.value=''); syncChips(); build();
+  window.scrollTo({top:0, behavior:'smooth'});
+};
+
+renderTopics(); renderFields(); build(); renderSaved();
+</script>
+</body>
+</html>
